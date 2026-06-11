@@ -61,6 +61,1648 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font
 #wx-pill span { color: var(--text2); font-weight: 400; font-size: 12px; }
 .status-row { display: flex; gap: 7px; font-size: 15px; opacity: 0.65; }
 
+/* Main area — grid layout, map left, panel right (panel also overlaps map via absolute) */
+#main { flex: 1; display: grid; grid-template-columns: 1fr 300px; min-height: 0; position: relative; }
+
+/* Map fills its grid cell */
+#map-wrap { position: relative; overflow: hidden; background: #0a0f1a; grid-column: 1 / -1; grid-row: 1; }
+#map { width: 100%; height: 100%; }
+
+/* Leaflet dark overrides */
+.leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) saturate(0.75) brightness(0.88); }
+.leaflet-control-zoom { display: none; }
+.leaflet-control-attribution { display: none; }
+
+/* Map overlays */
+#map-right-fade {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 80px; z-index: 2; pointer-events: none;
+  background: linear-gradient(to right, transparent, rgba(6,6,15,0.95));
+}
+#map-top-fade {
+  position: absolute; top: 0; left: 0; right: 0; height: 50px; z-index: 2; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.4), transparent);
+}
+#nav-card {
+  position: absolute; bottom: 18px; left: 14px; z-index: 5;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 15px;
+  background: rgba(10,10,24,0.75);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255,255,255,0.15);
+  border-radius: var(--r-sm);
+}
+#nav-arrow { font-size: 22px; color: var(--accent); }
+.nav-street { font-size: 12px; font-weight: 700; }
+.nav-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+#loc-btn {
+  position: absolute; top: 12px; left: 12px; z-index: 5;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(10,10,24,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(255,255,255,0.18);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--accent); font-size: 18px;
+}
+#loc-btn.tracking { color: var(--green); }
+
+/* Right panel — TRUE LIQUID GLASS: absolute overlay ON TOP of the map
+   backdrop-filter now blurs the actual map tiles behind it */
+#right {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 300px;
+  z-index: 15;
+  display: flex; flex-direction: column;
+  /* Very low opacity fill — the glass look comes from the map bleeding through */
+  background: rgba(8, 10, 22, 0.18);
+  backdrop-filter: blur(52px) saturate(270%) brightness(1.12);
+  -webkit-backdrop-filter: blur(52px) saturate(270%) brightness(1.12);
+  border-left: 0.5px solid rgba(255,255,255,0.22);
+  overflow: hidden;
+}
+/* Refraction color top shine */
+#right::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, 
+    rgba(120,180,255,0.55) 0%, 
+    rgba(255,255,255,0.80) 30%,
+    rgba(200,140,255,0.55) 60%,
+    rgba(255,255,255,0.40) 100%
+  );
+  z-index: 10; pointer-events: none;
+}
+/* Colorful refraction inner glow - Apple liquid glass */
+#right::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: 
+    radial-gradient(ellipse at 20% 10%, rgba(100,160,255,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 5%, rgba(200,120,255,0.07) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 100%, rgba(80,200,160,0.05) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 40%, transparent 100%);
+}
+
+/* All direct children of #right above the pseudo-elements */
+#right > * { position: relative; z-index: 2; }
+
+/* Auth */
+#auth {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; padding: 22px;
+}
+#auth .a-icon { font-size: 44px; }
+#auth h2 { font-size: 17px; font-weight: 700; text-align: center; }
+#auth p { font-size: 12px; color: var(--text2); text-align: center; line-height: 1.6; }
+#sp-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 13px;
+  background: #1db954; border: none; border-radius: 30px;
+  color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+#cid-wrap { width: 100%; }
+#cid-wrap label { font-size: 11px; color: var(--text3); display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+#cid-input {
+  width: 100%; padding: 11px 13px;
+  background: rgba(255,255,255,0.08); border: 0.5px solid rgba(255,255,255,0.18);
+  border-radius: 11px; color: #fff; font-size: 13px; outline: none; -webkit-appearance: none;
+}
+#cid-input:focus { border-color: var(--accent); }
+#cid-input::placeholder { color: rgba(255,255,255,0.25); }
+#auth-hint { font-size: 11px; color: var(--text3); text-align: center; line-height: 1.5; }
+
+/* Music panel — all sections are fixed-size, nothing clips */
+#music {
+  flex: 1; display: flex; flex-direction: column;
+  padding: 10px 13px 6px; gap: 0;
+  overflow: hidden; min-height: 0;
+}
+
+/* Art — fixed max height, never grows to push controls out */
+#art-wrap {
+  width: 100%; flex: 0 0 auto;
+  max-height: 125px; aspect-ratio: 1;
+  border-radius: 14px; overflow: hidden; position: relative;
+  margin-bottom: 9px;
+}
+#art-wrap::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 14px; border: 0.5px solid rgba(255,255,255,0.22);
+  pointer-events: none;
+}
+#album-art { width: 100%; height: 100%; object-fit: cover; display: none; }
+#art-ph {
+  width: 100%; height: 100%;
+  background: rgba(255,255,255,0.06); border: 0.5px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center; font-size: 40px;
+}
+
+/* Track info */
+#tinfo { text-align: center; flex: 0 0 auto; margin-bottom: 7px; }
+#tname { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tartist { font-size: 11px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Progress */
+#prog-wrap { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; margin-bottom: 4px; }
+#prog-bar {
+  width: 100%; height: 3px; border-radius: 2px;
+  background: rgba(255,255,255,0.12); cursor: pointer; position: relative;
+}
+#prog-fill {
+  height: 100%; background: var(--accent); border-radius: 2px;
+  transition: width 0.5s linear; position: relative;
+}
+#prog-fill::after {
+  content: ''; position: absolute; right: -5px; top: -5px;
+  width: 13px; height: 13px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 6px rgba(10,132,255,0.5);
+}
+#trow { display: flex; justify-content: space-between; font-size: 10px; color: var(--text3); }
+
+/* Controls — flex: 0 0 auto so never pushed off screen */
+#ctrls { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; flex: 0 0 auto; margin-bottom: 6px; }
+.cb {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text2); padding: 5px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.12s, color 0.12s;
+}
+.cb:active { transform: scale(0.85); }
+.cb i { font-size: 20px; }
+#play-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.14);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 0.5px solid rgba(255,255,255,0.22); color: #fff;
+}
+#play-btn i { font-size: 22px; }
+
+/* Volume */
+#vol-row { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+#vol-row i { font-size: 14px; color: var(--text3); }
+#vol-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.12); border-radius: 2px; cursor: pointer; }
+#vol-fill { height: 100%; background: rgba(255,255,255,0.38); border-radius: 2px; width: 70%; }
+
+/* Weather panel */
+#weather {
+  flex: 1; display: flex; flex-direction: column;
+  padding: 10px 12px 8px; gap: 8px; overflow-y: auto;
+}
+#wx-main { text-align: center; padding: 2px 0; }
+#wx-icon { font-size: 36px; line-height: 1; }
+#wx-temp { font-size: 38px; font-weight: 700; letter-spacing: -2px; margin-top: 2px; }
+#wx-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+#wx-loc { font-size: 10px; color: var(--text3); margin-top: 1px; }
+#wx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.wx-card {
+  padding: 8px 10px; border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.07);
+  border: 0.5px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.wx-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+.wx-val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+
+/* Dock */
+#dock {
+  display: flex; justify-content: space-around;
+  padding: 9px 6px calc(9px + env(safe-area-inset-bottom, 0px));
+  border-top: 0.5px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  flex-shrink: 0; position: relative; z-index: 3;
+}
+.db {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text3); padding: 5px 12px; border-radius: 10px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;
+  transition: color 0.2s;
+}
+.db i { font-size: 21px; }
+.db.active { color: var(--accent); }
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+  z-index: 200; padding: 9px 20px; border-radius: 20px;
+  background: rgba(20,20,40,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255,255,255,0.15);
+  font-size: 13px; color: var(--text2); opacity: 0; pointer-events: none;
+  transition: opacity 0.3s; white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+
+/* Confirm modal */
+#confirm-modal { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; }
+#confirm-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#confirm-box {
+  position: relative; z-index: 1;
+  background: rgba(30,30,50,0.85);
+  backdrop-filter: blur(40px) saturate(200%); -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 0.5px solid rgba(255,255,255,0.18);
+  border-radius: 20px; padding: 22px 20px 16px;
+  width: 240px; text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+#confirm-title { font-size: 15px; font-weight: 700; margin-bottom: 7px; }
+#confirm-msg { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 18px; }
+#confirm-btns { display: flex; gap: 10px; }
+#confirm-cancel, #confirm-ok {
+  flex: 1; padding: 11px 8px; border-radius: 12px; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+}
+#confirm-cancel { background: rgba(255,255,255,0.12); color: #fff; }
+#confirm-ok { background: var(--red); color: #fff; }
+#confirm-cancel:active, #confirm-ok:active { opacity: 0.7; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<div id="app">
+  <!-- Topbar -->
+  <div id="topbar">
+    <div id="clock">00:00</div>
+    <div id="wx-pill" onclick="setTab('weather')">
+      <span id="wx-icon-top">🌡</span>
+      <span id="wx-temp-top">--°</span>
+      <span id="wx-desc-top">...</span>
+    </div>
+    <div class="status-row">
+      <i class="ti ti-wifi"></i>
+      <i class="ti ti-battery-2"></i>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+    <!-- Map -->
+    <div id="map-wrap">
+      <div id="map"></div>
+      <div id="map-right-fade"></div>
+      <div id="map-top-fade"></div>
+      <button id="loc-btn" onclick="centerOnUser()" title="Centralizar">
+        <i class="ti ti-current-location" id="loc-icon"></i>
+      </button>
+      <div id="nav-card">
+        <span id="nav-arrow">↑</span>
+        <div>
+          <div class="nav-street" id="nav-street">Localizando...</div>
+          <div class="nav-sub" id="nav-sub">GPS aguardando</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel (liquid glass) -->
+    <div id="right">
+
+      <!-- Auth -->
+      <div id="auth">
+        <div class="a-icon">🎵</div>
+        <h2>Conectar ao Spotify</h2>
+        <p>Controle sua música em tempo real. Requer Spotify Premium.</p>
+        <div id="cid-wrap">
+          <label>Client ID do Spotify</label>
+          <input id="cid-input" type="text" placeholder="Cole seu Client ID aqui" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+        <button id="sp-btn" onclick="doLogin()">
+          <i class="ti ti-brand-spotify"></i> Entrar no Spotify
+        </button>
+        <p id="auth-hint">Crie um app gratuito em<br>developer.spotify.com/dashboard</p>
+      </div>
+
+      <!-- Music -->
+      <div id="music" class="hidden">
+        <div id="art-wrap">
+          <div id="art-ph">🎵</div>
+          <img id="album-art" alt="capa">
+        </div>
+        <div id="tinfo">
+          <div id="tname">Nenhuma faixa</div>
+          <div id="tartist">Abra o Spotify no celular</div>
+        </div>
+        <div id="prog-wrap">
+          <div id="prog-bar" onclick="seek(event)">
+            <div id="prog-fill" style="width:0%"></div>
+          </div>
+          <div id="trow"><span id="tnow">0:00</span><span id="ttot">0:00</span></div>
+        </div>
+        <div id="ctrls">
+          <button class="cb" onclick="doShuffle()" id="shuf-btn" title="Shuffle"><i class="ti ti-arrows-shuffle"></i></button>
+          <button class="cb" onclick="doPrev()" title="Anterior"><i class="ti ti-player-skip-back"></i></button>
+          <button class="cb" id="play-btn" onclick="doPlay()" title="Play/Pause"><i class="ti ti-player-play" id="play-icon"></i></button>
+          <button class="cb" onclick="doNext()" title="Próxima"><i class="ti ti-player-skip-forward"></i></button>
+          <button class="cb" id="like-btn" onclick="doLike()" title="Curtir"><i class="ti ti-heart" id="heart-icon"></i></button>
+        </div>
+        <div id="vol-row">
+          <i class="ti ti-volume"></i>
+          <div id="vol-bar" onclick="setVol(event)"><div id="vol-fill"></div></div>
+          <i class="ti ti-volume-2"></i>
+        </div>
+      </div>
+
+      <!-- Weather -->
+      <div id="weather" class="hidden">
+        <div id="wx-main">
+          <div id="wx-icon">⛅</div>
+          <div id="wx-temp">--°</div>
+          <div id="wx-desc">Carregando...</div>
+          <div id="wx-loc">Pelotas, RS</div>
+        </div>
+        <div id="wx-grid">
+          <div class="wx-card"><div class="wx-label">Sensação</div><div class="wx-val" id="wx-feel">--°</div></div>
+          <div class="wx-card"><div class="wx-label">Umidade</div><div class="wx-val" id="wx-hum">--%</div></div>
+          <div class="wx-card"><div class="wx-label">Vento</div><div class="wx-val" id="wx-wind">--</div></div>
+          <div class="wx-card"><div class="wx-label">Chuva</div><div class="wx-val" id="wx-rain">-- mm</div></div>
+          <div class="wx-card"><div class="wx-label">Mín / Máx</div><div class="wx-val" id="wx-mm">--</div></div>
+          <div class="wx-card"><div class="wx-label">Índice UV</div><div class="wx-val" id="wx-uv">--</div></div>
+        </div>
+      </div>
+
+      <!-- Dock -->
+      <div id="dock">
+        <button class="db active" id="db-music" onclick="setTab('music')"><i class="ti ti-music"></i><span>Música</span></button>
+        <button class="db" id="db-weather" onclick="setTab('weather')"><i class="ti ti-cloud"></i><span>Clima</span></button>
+        <button class="db" id="db-settings" onclick="showSettings()"><i class="ti ti-settings"></i><span>Config</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Confirm modal -->
+<div id="confirm-modal" class="hidden">
+  <div id="confirm-overlay"></div>
+  <div id="confirm-box">
+    <div id="confirm-title">Confirmar</div>
+    <div id="confirm-msg"></div>
+    <div id="confirm-btns">
+      <button id="confirm-cancel">Cancelar</button>
+      <button id="confirm-ok">Desconectar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const S = {
+  tab: 'music',
+  playing: false, liked: false, shuffled: false,
+  progress: 0, duration: 0, volume: 70,
+  token: null, refresh: null, expires: 0,
+  clientId: null,
+  pollT: null, progT: null,
+  map: null, marker: null, tracking: true,
+  lat: -31.77, lon: -52.34,
+};
+
+const REDIRECT = window.location.origin + window.location.pathname;
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  tick();
+  setInterval(tick, 15000);
+  initMap();
+  loadWeather();
+  setInterval(loadWeather, 5 * 60000);
+  startGPS();
+
+  S.clientId = localStorage.getItem('sp_cid') || '';
+  S.token    = localStorage.getItem('sp_tok') || null;
+  S.refresh  = localStorage.getItem('sp_ref') || null;
+  S.expires  = parseInt(localStorage.getItem('sp_exp') || '0');
+
+  if (S.clientId) document.getElementById('cid-input').value = S.clientId;
+
+  const code = new URLSearchParams(location.search).get('code');
+  if (code) { history.replaceState({}, '', location.pathname); exchangeCode(code); return; }
+
+  if (S.token) go();
+});
+
+// ── Clock ────────────────────────────────────────────────────────────────────
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    n.getHours().toString().padStart(2,'0') + ':' + n.getMinutes().toString().padStart(2,'0');
+}
+
+// ── Map (Leaflet + OSM) ──────────────────────────────────────────────────────
+function initMap() {
+  S.map = L.map('map', { zoomControl: false, attributionControl: false }).setView([S.lat, S.lon], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.map);
+  // Double rAF ensures layout is complete before size calculation
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    S.map.invalidateSize();
+  }));
+
+  // Custom pulsing marker
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="
+      width:18px;height:18px;border-radius:50%;
+      background:#0a84ff;border:3px solid #fff;
+      box-shadow:0 0 0 6px rgba(10,132,255,0.25);
+      animation:pulse 1.8s ease-in-out infinite;
+    "></div>
+    <style>@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(10,132,255,0.25)}50%{box-shadow:0 0 0 10px rgba(10,132,255,0.08)}}</style>`,
+    iconSize: [18, 18], iconAnchor: [9, 9],
+  });
+  S.marker = L.marker([S.lat, S.lon], { icon }).addTo(S.map);
+}
+
+function startGPS() {
+  if (!navigator.geolocation) { toast('GPS não disponível'); return; }
+  navigator.geolocation.watchPosition(pos => {
+    S.lat = pos.coords.latitude;
+    S.lon = pos.coords.longitude;
+    S.marker.setLatLng([S.lat, S.lon]);
+    if (S.tracking) S.map.setView([S.lat, S.lon], 16);
+    reverseGeocode(S.lat, S.lon);
+    // update weather with real location
+    loadWeatherCoords(S.lat, S.lon);
+    document.getElementById('loc-btn').classList.add('tracking');
+  }, err => {
+    console.warn('GPS:', err.message);
+    toast('GPS: ' + (err.code === 1 ? 'permissão negada' : 'indisponível'));
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+
+  S.map.on('dragstart', () => {
+    S.tracking = false;
+    document.getElementById('loc-btn').classList.remove('tracking');
+  });
+}
+
+function centerOnUser() {
+  S.tracking = true;
+  S.map.invalidateSize();
+  S.map.setView([S.lat, S.lon], 16);
+  document.getElementById('loc-btn').classList.add('tracking');
+}
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+    const d = await r.json();
+    const road = d.address?.road || d.address?.pedestrian || d.address?.suburb || '';
+    const city = d.address?.city || d.address?.town || d.address?.village || '';
+    document.getElementById('nav-street').textContent = road || city || 'Rua atual';
+    document.getElementById('nav-sub').textContent = city || 'GPS ativo';
+  } catch(e) {}
+}
+
+// ── Weather ──────────────────────────────────────────────────────────────────
+const WXI = {0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌧',55:'🌧',61:'🌧',63:'🌧',65:'⛈',71:'🌨',80:'🌦',95:'⛈'};
+const WXD = {0:'Céu limpo',1:'Quase limpo',2:'Parcialmente nublado',3:'Nublado',45:'Neblina',51:'Chuvisco',61:'Chuva leve',63:'Chuva moderada',80:'Pancadas',95:'Trovoada'};
+
+function loadWeather() { loadWeatherCoords(S.lat, S.lon); }
+
+async function loadWeatherCoords(lat, lon) {
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,windspeed_10m,precipitation,weathercode,uv_index&daily=temperature_2m_max,temperature_2m_min&wind_speed_unit=kmh&timezone=auto`);
+    const d = await r.json();
+    const c = d.current, dl = d.daily;
+    const t = Math.round(c.temperature_2m);
+    const feel = Math.round(c.apparent_temperature);
+    const hum  = Math.round(c.relative_humidity_2m);
+    const wind = Math.round(c.windspeed_10m);
+    const rain = (c.precipitation||0).toFixed(1);
+    const code = c.weathercode;
+    const uv   = c.uv_index != null ? Math.round(c.uv_index) : '--';
+    const tmin = dl ? Math.round(dl.temperature_2m_min[0]) : '--';
+    const tmax = dl ? Math.round(dl.temperature_2m_max[0]) : '--';
+    const icon = WXI[code] || '🌡', desc = WXD[code] || 'Variado';
+
+    $('wx-icon-top').textContent = icon;
+    $('wx-temp-top').textContent = t + '°';
+    $('wx-desc-top').textContent = desc;
+    $('wx-icon').textContent = icon;
+    $('wx-temp').textContent = t + '°';
+    $('wx-desc').textContent = desc;
+    $('wx-feel').textContent = feel + '°';
+    $('wx-hum').textContent  = hum + '%';
+    $('wx-wind').textContent = wind + ' km/h';
+    $('wx-rain').textContent = rain + ' mm';
+    $('wx-mm').textContent   = tmin + ' / ' + tmax + '°';
+    $('wx-uv').textContent   = uv;
+  } catch(e) { console.warn('wx', e); }
+}
+
+// ── Spotify PKCE ─────────────────────────────────────────────────────────────
+function doLogin() {
+  const cid = document.getElementById('cid-input').value.trim();
+  if (!cid) { toast('Cole o Client ID primeiro!'); return; }
+  localStorage.setItem('sp_cid', cid);
+  S.clientId = cid;
+  pkceLogin(cid);
+}
+
+async function pkceLogin(cid) {
+  const ver = rndStr(96);
+  localStorage.setItem('sp_ver', ver);
+  const ch = await sha256b64(ver);
+  const scopes = 'user-read-playback-state user-modify-playback-state user-read-currently-playing user-library-modify user-library-read';
+  location.href = `https://accounts.spotify.com/authorize?client_id=${cid}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${ch}`;
+}
+
+async function exchangeCode(code) {
+  const ver = localStorage.getItem('sp_ver');
+  const cid = localStorage.getItem('sp_cid');
+  if (!ver || !cid) { toast('Configuração perdida, tente novamente'); return; }
+  try {
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({client_id:cid, grant_type:'authorization_code', code, redirect_uri:REDIRECT, code_verifier:ver})
+    });
+    const d = await r.json();
+    if (d.access_token) {
+      saveTokens(d);
+      go();
+    } else {
+      toast('Erro: ' + (d.error_description || d.error));
+    }
+  } catch(e) { toast('Erro de conexão'); }
+}
+
+function saveTokens(d) {
+  S.token   = d.access_token;
+  S.refresh = d.refresh_token || S.refresh;
+  S.expires = Date.now() + d.expires_in * 1000;
+  localStorage.setItem('sp_tok', S.token);
+  if (S.refresh) localStorage.setItem('sp_ref', S.refresh);
+  localStorage.setItem('sp_exp', S.expires);
+}
+
+async function ensureToken() {
+  if (Date.now() < S.expires - 60000) return true;
+  const cid = localStorage.getItem('sp_cid');
+  const ref = localStorage.getItem('sp_ref');
+  if (!ref || !cid) return false;
+  try {
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({client_id:cid, grant_type:'refresh_token', refresh_token:ref})
+    });
+    const d = await r.json();
+    if (d.access_token) { saveTokens(d); return true; }
+  } catch(e) {}
+  return false;
+}
+
+function go() {
+  $('auth').classList.add('hidden');
+  $('music').classList.remove('hidden');
+  toast('✅ Spotify conectado!');
+  poll();
+  S.pollT = setInterval(poll, 3000);
+}
+
+// ── Spotify API ───────────────────────────────────────────────────────────────
+async function sp(path, method='GET', body=null) {
+  if (!await ensureToken()) { logout(); return null; }
+  const opts = { method, headers: {'Authorization':'Bearer '+S.token} };
+  if (body !== null) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
+  try {
+    const r = await fetch('https://api.spotify.com/v1' + path, opts);
+    if (r.status === 401) { if(await ensureToken()) return sp(path,method,body); logout(); return null; }
+    if (r.status === 204 || r.status === 202) return true;
+    if (r.ok) { const t = await r.text(); return t ? JSON.parse(t) : true; }
+  } catch(e) {}
+  return null;
+}
+
+async function poll() {
+  const d = await sp('/me/player');
+  if (!d || !d.item) {
+    $('tname').textContent = 'Nenhuma faixa';
+    $('tartist').textContent = 'Abra o Spotify no celular';
+    return;
+  }
+  const tr = d.item;
+  $('tname').textContent   = tr.name;
+  $('tartist').textContent = tr.artists.map(a=>a.name).join(', ');
+
+  const img = tr.album?.images?.[0]?.url;
+  if (img) {
+    $('album-art').src = img;
+    $('album-art').style.display = 'block';
+    $('art-ph').style.display = 'none';
+  } else {
+    $('album-art').style.display = 'none';
+    $('art-ph').style.display = 'flex';
+  }
+
+  S.duration = tr.duration_ms;
+  S.progress = d.progress_ms;
+  S.playing  = d.is_playing;
+  S.shuffled = d.shuffle_state;
+  renderProg();
+
+  $('play-icon').className = S.playing ? 'ti ti-player-pause' : 'ti ti-player-play';
+  $('shuf-btn').style.color = S.shuffled ? 'var(--accent)' : '';
+
+  if (d.device?.volume_percent != null) {
+    S.volume = d.device.volume_percent;
+    $('vol-fill').style.width = S.volume + '%';
+  }
+
+  clearInterval(S.progT);
+  if (S.playing) {
+    S.progT = setInterval(() => {
+      S.progress = Math.min(S.progress + 500, S.duration);
+      renderProg();
+    }, 500);
+  }
+}
+
+function renderProg() {
+  const pct = S.duration > 0 ? (S.progress / S.duration * 100).toFixed(2) : 0;
+  $('prog-fill').style.width = pct + '%';
+  $('tnow').textContent = ms(S.progress);
+  $('ttot').textContent = ms(S.duration);
+}
+
+async function doPlay()    { await sp('/me/player/' + (S.playing ? 'pause' : 'play'), 'PUT'); setTimeout(poll, 350); }
+async function doNext()    { await sp('/me/player/next', 'POST'); setTimeout(poll, 450); }
+async function doPrev()    { await sp('/me/player/previous', 'POST'); setTimeout(poll, 450); }
+async function doShuffle() { S.shuffled=!S.shuffled; await sp('/me/player/shuffle?state='+S.shuffled,'PUT'); $('shuf-btn').style.color=S.shuffled?'var(--accent)':''; }
+async function doLike()    { S.liked=!S.liked; $('heart-icon').style.color=S.liked?'var(--red)':''; toast(S.liked?'❤️ Curtido!':'💔 Removido'); }
+
+async function seek(e) {
+  const r = $('prog-bar').getBoundingClientRect();
+  const ms2 = Math.floor(Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)) * S.duration);
+  await sp('/me/player/seek?position_ms='+ms2,'PUT');
+  S.progress = ms2; renderProg();
+}
+
+async function setVol(e) {
+  const r = $('vol-bar').getBoundingClientRect();
+  const v = Math.max(0,Math.min(100,Math.round(((e.clientX-r.left)/r.width)*100)));
+  S.volume = v; $('vol-fill').style.width = v+'%';
+  await sp('/me/player/volume?volume_percent='+v,'PUT');
+}
+
+function logout() {
+  clearInterval(S.pollT); clearInterval(S.progT);
+  ['sp_tok','sp_ref','sp_exp'].forEach(k=>localStorage.removeItem(k));
+  S.token = null;
+  $('music').classList.add('hidden');
+  $('auth').classList.remove('hidden');
+  toast('Sessão expirada. Reconecte.');
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function setTab(tab) {
+  S.tab = tab;
+  ['music','weather','settings'].forEach(t => $('db-'+t)?.classList.remove('active'));
+  $('db-'+tab)?.classList.add('active');
+
+  const loggedIn = !!S.token;
+  $('auth').classList.toggle('hidden', loggedIn || tab !== 'music');
+  $('music').classList.toggle('hidden', !loggedIn || tab !== 'music');
+  $('weather').classList.toggle('hidden', tab !== 'weather');
+}
+
+function showSettings() {
+  // Show confirmation modal before disconnecting
+  showConfirm(
+    'Desconectar do Spotify?',
+    'Você precisará conectar novamente para controlar a música.',
+    () => {
+      clearInterval(S.pollT); clearInterval(S.progT);
+      ['sp_tok','sp_ref','sp_exp','sp_cid','sp_ref','sp_ver'].forEach(k=>localStorage.removeItem(k));
+      S.token = null;
+      $('db-settings').classList.remove('active');
+      $('db-music').classList.add('active');
+      S.tab = 'music';
+      $('music').classList.add('hidden');
+      $('weather').classList.add('hidden');
+      $('auth').classList.remove('hidden');
+      if (S.clientId) $('cid-input').value = S.clientId;
+      toast('Desconectado. Reconecte o Spotify.');
+    }
+  );
+}
+
+function showConfirm(title, msg, onConfirm) {
+  const modal = document.getElementById('confirm-modal');
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  modal.classList.remove('hidden');
+  document.getElementById('confirm-ok').onclick = () => {
+    modal.classList.add('hidden');
+    onConfirm();
+  };
+  document.getElementById('confirm-cancel').onclick = () => {
+    modal.classList.add('hidden');
+  };
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function ms(m) { const s=Math.floor(m/1000); return Math.floor(s/60)+':'+(s%60).toString().padStart(2,'0'); }
+function rndStr(len) { const c='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'; return Array.from(crypto.getRandomValues(new Uint8Array(len))).map(b=>c[b%c.length]).join(''); }
+async function sha256b64(s) { const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)); return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
+
+let toastT;
+function toast(m) {
+  const el=$('toast'); el.textContent=m; el.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CarPlay">
+<meta name="theme-color" content="#000000">
+<title>CarPlay</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+
+<style>
+:root {
+  --glass: rgba(255,255,255,0.10);
+  --glass-border: rgba(255,255,255,0.18);
+  --glass-blur: blur(32px) saturate(200%);
+  --accent: #0a84ff;
+  --green: #30d158;
+  --red: #ff453a;
+  --text: #ffffff;
+  --text2: rgba(255,255,255,0.55);
+  --text3: rgba(255,255,255,0.28);
+  --r: 20px;
+  --r-sm: 13px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system,'SF Pro Display','Helvetica Neue',sans-serif; color: #fff; }
+
+/* Animated BG */
+#bg { position: fixed; inset: 0; z-index: 0; background: #06060f; }
+.blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.4; animation: bf 20s ease-in-out infinite; }
+.b1 { width: 600px; height: 600px; background: #0d2855; top: -150px; left: -150px; }
+.b2 { width: 450px; height: 450px; background: #0a2818; bottom: -100px; right: -100px; animation-delay: -7s; }
+.b3 { width: 350px; height: 350px; background: #1e0a3c; top: 40%; left: 35%; animation-delay: -14s; }
+@keyframes bf { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(25px,-18px) scale(1.06)} 70%{transform:translate(-18px,22px) scale(0.94)} }
+
+/* App shell */
+#app { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; padding: env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0); }
+
+/* Topbar */
+#topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px 9px;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border-bottom: 0.5px solid rgba(255,255,255,0.1);
+  flex-shrink: 0; z-index: 10;
+}
+#clock { font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+#wx-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 13px; border-radius: 20px;
+  background: rgba(255,255,255,0.09);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(255,255,255,0.14);
+  cursor: pointer; font-size: 13px; font-weight: 600;
+}
+#wx-pill span { color: var(--text2); font-weight: 400; font-size: 12px; }
+.status-row { display: flex; gap: 7px; font-size: 15px; opacity: 0.65; }
+
+/* Main area — grid layout, map left, panel right (panel also overlaps map via absolute) */
+#main { flex: 1; display: grid; grid-template-columns: 1fr 300px; min-height: 0; position: relative; }
+
+/* Map fills its grid cell */
+#map-wrap { position: relative; overflow: hidden; background: #0a0f1a; grid-column: 1 / -1; grid-row: 1; }
+#map { width: 100%; height: 100%; }
+
+/* Leaflet dark overrides */
+.leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) saturate(0.75) brightness(0.88); }
+.leaflet-control-zoom { display: none; }
+.leaflet-control-attribution { display: none; }
+
+/* Map overlays */
+#map-right-fade {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 80px; z-index: 2; pointer-events: none;
+  background: linear-gradient(to right, transparent, rgba(6,6,15,0.95));
+}
+#map-top-fade {
+  position: absolute; top: 0; left: 0; right: 0; height: 50px; z-index: 2; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.4), transparent);
+}
+#nav-card {
+  position: absolute; bottom: 18px; left: 14px; z-index: 5;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 15px;
+  background: rgba(10,10,24,0.75);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255,255,255,0.15);
+  border-radius: var(--r-sm);
+}
+#nav-arrow { font-size: 22px; color: var(--accent); }
+.nav-street { font-size: 12px; font-weight: 700; }
+.nav-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+#loc-btn {
+  position: absolute; top: 12px; left: 12px; z-index: 5;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(10,10,24,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(255,255,255,0.18);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--accent); font-size: 18px;
+}
+#loc-btn.tracking { color: var(--green); }
+
+/* Right panel — TRUE LIQUID GLASS: absolute overlay ON TOP of the map
+   backdrop-filter now blurs the actual map tiles behind it */
+#right {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 300px;
+  z-index: 15;
+  display: flex; flex-direction: column;
+  /* Very low opacity fill — the glass look comes from the map bleeding through */
+  background: rgba(8, 10, 22, 0.18);
+  backdrop-filter: blur(52px) saturate(270%) brightness(1.12);
+  -webkit-backdrop-filter: blur(52px) saturate(270%) brightness(1.12);
+  border-left: 0.5px solid rgba(255,255,255,0.22);
+  overflow: hidden;
+}
+/* Refraction color top shine */
+#right::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, 
+    rgba(120,180,255,0.55) 0%, 
+    rgba(255,255,255,0.80) 30%,
+    rgba(200,140,255,0.55) 60%,
+    rgba(255,255,255,0.40) 100%
+  );
+  z-index: 10; pointer-events: none;
+}
+/* Colorful refraction inner glow - Apple liquid glass */
+#right::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: 
+    radial-gradient(ellipse at 20% 10%, rgba(100,160,255,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 5%, rgba(200,120,255,0.07) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 100%, rgba(80,200,160,0.05) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 40%, transparent 100%);
+}
+
+/* All direct children of #right above the pseudo-elements */
+#right > * { position: relative; z-index: 2; }
+
+/* Auth */
+#auth {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; padding: 22px;
+}
+#auth .a-icon { font-size: 44px; }
+#auth h2 { font-size: 17px; font-weight: 700; text-align: center; }
+#auth p { font-size: 12px; color: var(--text2); text-align: center; line-height: 1.6; }
+#sp-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 13px;
+  background: #1db954; border: none; border-radius: 30px;
+  color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+#cid-wrap { width: 100%; }
+#cid-wrap label { font-size: 11px; color: var(--text3); display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+#cid-input {
+  width: 100%; padding: 11px 13px;
+  background: rgba(255,255,255,0.08); border: 0.5px solid rgba(255,255,255,0.18);
+  border-radius: 11px; color: #fff; font-size: 13px; outline: none; -webkit-appearance: none;
+}
+#cid-input:focus { border-color: var(--accent); }
+#cid-input::placeholder { color: rgba(255,255,255,0.25); }
+#auth-hint { font-size: 11px; color: var(--text3); text-align: center; line-height: 1.5; }
+
+/* Music panel — all sections are fixed-size, nothing clips */
+#music {
+  flex: 1; display: flex; flex-direction: column;
+  padding: 10px 13px 6px; gap: 0;
+  overflow: hidden; min-height: 0;
+}
+
+/* Art — fixed max height, never grows to push controls out */
+#art-wrap {
+  width: 100%; flex: 0 0 auto;
+  max-height: 125px; aspect-ratio: 1;
+  border-radius: 14px; overflow: hidden; position: relative;
+  margin-bottom: 9px;
+}
+#art-wrap::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 14px; border: 0.5px solid rgba(255,255,255,0.22);
+  pointer-events: none;
+}
+#album-art { width: 100%; height: 100%; object-fit: cover; display: none; }
+#art-ph {
+  width: 100%; height: 100%;
+  background: rgba(255,255,255,0.06); border: 0.5px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center; font-size: 40px;
+}
+
+/* Track info */
+#tinfo { text-align: center; flex: 0 0 auto; margin-bottom: 7px; }
+#tname { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tartist { font-size: 11px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Progress */
+#prog-wrap { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; margin-bottom: 4px; }
+#prog-bar {
+  width: 100%; height: 3px; border-radius: 2px;
+  background: rgba(255,255,255,0.12); cursor: pointer; position: relative;
+}
+#prog-fill {
+  height: 100%; background: var(--accent); border-radius: 2px;
+  transition: width 0.5s linear; position: relative;
+}
+#prog-fill::after {
+  content: ''; position: absolute; right: -5px; top: -5px;
+  width: 13px; height: 13px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 6px rgba(10,132,255,0.5);
+}
+#trow { display: flex; justify-content: space-between; font-size: 10px; color: var(--text3); }
+
+/* Controls — flex: 0 0 auto so never pushed off screen */
+#ctrls { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; flex: 0 0 auto; margin-bottom: 6px; }
+.cb {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text2); padding: 5px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.12s, color 0.12s;
+}
+.cb:active { transform: scale(0.85); }
+.cb i { font-size: 20px; }
+#play-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.14);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 0.5px solid rgba(255,255,255,0.22); color: #fff;
+}
+#play-btn i { font-size: 22px; }
+
+/* Volume */
+#vol-row { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+#vol-row i { font-size: 14px; color: var(--text3); }
+#vol-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.12); border-radius: 2px; cursor: pointer; }
+#vol-fill { height: 100%; background: rgba(255,255,255,0.38); border-radius: 2px; width: 70%; }
+
+/* Weather panel */
+#weather {
+  flex: 1; display: flex; flex-direction: column;
+  padding: 10px 12px 8px; gap: 8px; overflow-y: auto;
+}
+#wx-main { text-align: center; padding: 2px 0; }
+#wx-icon { font-size: 36px; line-height: 1; }
+#wx-temp { font-size: 38px; font-weight: 700; letter-spacing: -2px; margin-top: 2px; }
+#wx-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+#wx-loc { font-size: 10px; color: var(--text3); margin-top: 1px; }
+#wx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.wx-card {
+  padding: 8px 10px; border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.07);
+  border: 0.5px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.wx-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+.wx-val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+
+/* Dock */
+#dock {
+  display: flex; justify-content: space-around;
+  padding: 9px 6px calc(9px + env(safe-area-inset-bottom, 0px));
+  border-top: 0.5px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  flex-shrink: 0; position: relative; z-index: 3;
+}
+.db {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text3); padding: 5px 12px; border-radius: 10px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;
+  transition: color 0.2s;
+}
+.db i { font-size: 21px; }
+.db.active { color: var(--accent); }
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+  z-index: 200; padding: 9px 20px; border-radius: 20px;
+  background: rgba(20,20,40,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255,255,255,0.15);
+  font-size: 13px; color: var(--text2); opacity: 0; pointer-events: none;
+  transition: opacity 0.3s; white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+
+/* Confirm modal */
+#confirm-modal { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; }
+#confirm-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#confirm-box {
+  position: relative; z-index: 1;
+  background: rgba(30,30,50,0.85);
+  backdrop-filter: blur(40px) saturate(200%); -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 0.5px solid rgba(255,255,255,0.18);
+  border-radius: 20px; padding: 22px 20px 16px;
+  width: 240px; text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+#confirm-title { font-size: 15px; font-weight: 700; margin-bottom: 7px; }
+#confirm-msg { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 18px; }
+#confirm-btns { display: flex; gap: 10px; }
+#confirm-cancel, #confirm-ok {
+  flex: 1; padding: 11px 8px; border-radius: 12px; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+}
+#confirm-cancel { background: rgba(255,255,255,0.12); color: #fff; }
+#confirm-ok { background: var(--red); color: #fff; }
+#confirm-cancel:active, #confirm-ok:active { opacity: 0.7; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<div id="app">
+  <!-- Topbar -->
+  <div id="topbar">
+    <div id="clock">00:00</div>
+    <div id="wx-pill" onclick="setTab('weather')">
+      <span id="wx-icon-top">🌡</span>
+      <span id="wx-temp-top">--°</span>
+      <span id="wx-desc-top">...</span>
+    </div>
+    <div class="status-row">
+      <i class="ti ti-wifi"></i>
+      <i class="ti ti-battery-2"></i>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+    <!-- Map -->
+    <div id="map-wrap">
+      <div id="map"></div>
+      <div id="map-right-fade"></div>
+      <div id="map-top-fade"></div>
+      <button id="loc-btn" onclick="centerOnUser()" title="Centralizar">
+        <i class="ti ti-current-location" id="loc-icon"></i>
+      </button>
+      <div id="nav-card">
+        <span id="nav-arrow">↑</span>
+        <div>
+          <div class="nav-street" id="nav-street">Localizando...</div>
+          <div class="nav-sub" id="nav-sub">GPS aguardando</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel (liquid glass) -->
+    <div id="right">
+
+      <!-- Auth -->
+      <div id="auth">
+        <div class="a-icon">🎵</div>
+        <h2>Conectar ao Spotify</h2>
+        <p>Controle sua música em tempo real. Requer Spotify Premium.</p>
+        <div id="cid-wrap">
+          <label>Client ID do Spotify</label>
+          <input id="cid-input" type="text" placeholder="Cole seu Client ID aqui" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+        <button id="sp-btn" onclick="doLogin()">
+          <i class="ti ti-brand-spotify"></i> Entrar no Spotify
+        </button>
+        <p id="auth-hint">Crie um app gratuito em<br>developer.spotify.com/dashboard</p>
+      </div>
+
+      <!-- Music -->
+      <div id="music" class="hidden">
+        <div id="art-wrap">
+          <div id="art-ph">🎵</div>
+          <img id="album-art" alt="capa">
+        </div>
+        <div id="tinfo">
+          <div id="tname">Nenhuma faixa</div>
+          <div id="tartist">Abra o Spotify no celular</div>
+        </div>
+        <div id="prog-wrap">
+          <div id="prog-bar" onclick="seek(event)">
+            <div id="prog-fill" style="width:0%"></div>
+          </div>
+          <div id="trow"><span id="tnow">0:00</span><span id="ttot">0:00</span></div>
+        </div>
+        <div id="ctrls">
+          <button class="cb" onclick="doShuffle()" id="shuf-btn" title="Shuffle"><i class="ti ti-arrows-shuffle"></i></button>
+          <button class="cb" onclick="doPrev()" title="Anterior"><i class="ti ti-player-skip-back"></i></button>
+          <button class="cb" id="play-btn" onclick="doPlay()" title="Play/Pause"><i class="ti ti-player-play" id="play-icon"></i></button>
+          <button class="cb" onclick="doNext()" title="Próxima"><i class="ti ti-player-skip-forward"></i></button>
+          <button class="cb" id="like-btn" onclick="doLike()" title="Curtir"><i class="ti ti-heart" id="heart-icon"></i></button>
+        </div>
+        <div id="vol-row">
+          <i class="ti ti-volume"></i>
+          <div id="vol-bar" onclick="setVol(event)"><div id="vol-fill"></div></div>
+          <i class="ti ti-volume-2"></i>
+        </div>
+      </div>
+
+      <!-- Weather -->
+      <div id="weather" class="hidden">
+        <div id="wx-main">
+          <div id="wx-icon">⛅</div>
+          <div id="wx-temp">--°</div>
+          <div id="wx-desc">Carregando...</div>
+          <div id="wx-loc">Pelotas, RS</div>
+        </div>
+        <div id="wx-grid">
+          <div class="wx-card"><div class="wx-label">Sensação</div><div class="wx-val" id="wx-feel">--°</div></div>
+          <div class="wx-card"><div class="wx-label">Umidade</div><div class="wx-val" id="wx-hum">--%</div></div>
+          <div class="wx-card"><div class="wx-label">Vento</div><div class="wx-val" id="wx-wind">--</div></div>
+          <div class="wx-card"><div class="wx-label">Chuva</div><div class="wx-val" id="wx-rain">-- mm</div></div>
+          <div class="wx-card"><div class="wx-label">Mín / Máx</div><div class="wx-val" id="wx-mm">--</div></div>
+          <div class="wx-card"><div class="wx-label">Índice UV</div><div class="wx-val" id="wx-uv">--</div></div>
+        </div>
+      </div>
+
+      <!-- Dock -->
+      <div id="dock">
+        <button class="db active" id="db-music" onclick="setTab('music')"><i class="ti ti-music"></i><span>Música</span></button>
+        <button class="db" id="db-weather" onclick="setTab('weather')"><i class="ti ti-cloud"></i><span>Clima</span></button>
+        <button class="db" id="db-settings" onclick="showSettings()"><i class="ti ti-settings"></i><span>Config</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Confirm modal -->
+<div id="confirm-modal" class="hidden">
+  <div id="confirm-overlay"></div>
+  <div id="confirm-box">
+    <div id="confirm-title">Confirmar</div>
+    <div id="confirm-msg"></div>
+    <div id="confirm-btns">
+      <button id="confirm-cancel">Cancelar</button>
+      <button id="confirm-ok">Desconectar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const S = {
+  tab: 'music',
+  playing: false, liked: false, shuffled: false,
+  progress: 0, duration: 0, volume: 70,
+  token: null, refresh: null, expires: 0,
+  clientId: null,
+  pollT: null, progT: null,
+  map: null, marker: null, tracking: true,
+  lat: -31.77, lon: -52.34,
+};
+
+const REDIRECT = window.location.origin + window.location.pathname;
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  tick();
+  setInterval(tick, 15000);
+  initMap();
+  loadWeather();
+  setInterval(loadWeather, 5 * 60000);
+  startGPS();
+
+  S.clientId = localStorage.getItem('sp_cid') || '';
+  S.token    = localStorage.getItem('sp_tok') || null;
+  S.refresh  = localStorage.getItem('sp_ref') || null;
+  S.expires  = parseInt(localStorage.getItem('sp_exp') || '0');
+
+  if (S.clientId) document.getElementById('cid-input').value = S.clientId;
+
+  const code = new URLSearchParams(location.search).get('code');
+  if (code) { history.replaceState({}, '', location.pathname); exchangeCode(code); return; }
+
+  if (S.token) go();
+});
+
+// ── Clock ────────────────────────────────────────────────────────────────────
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    n.getHours().toString().padStart(2,'0') + ':' + n.getMinutes().toString().padStart(2,'0');
+}
+
+// ── Map (Leaflet + OSM) ──────────────────────────────────────────────────────
+function initMap() {
+  S.map = L.map('map', { zoomControl: false, attributionControl: false }).setView([S.lat, S.lon], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.map);
+  // Double rAF ensures layout is complete before size calculation
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    S.map.invalidateSize();
+  }));
+
+  // Custom pulsing marker
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="
+      width:18px;height:18px;border-radius:50%;
+      background:#0a84ff;border:3px solid #fff;
+      box-shadow:0 0 0 6px rgba(10,132,255,0.25);
+      animation:pulse 1.8s ease-in-out infinite;
+    "></div>
+    <style>@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(10,132,255,0.25)}50%{box-shadow:0 0 0 10px rgba(10,132,255,0.08)}}</style>`,
+    iconSize: [18, 18], iconAnchor: [9, 9],
+  });
+  S.marker = L.marker([S.lat, S.lon], { icon }).addTo(S.map);
+}
+
+function startGPS() {
+  if (!navigator.geolocation) { toast('GPS não disponível'); return; }
+  navigator.geolocation.watchPosition(pos => {
+    S.lat = pos.coords.latitude;
+    S.lon = pos.coords.longitude;
+    S.marker.setLatLng([S.lat, S.lon]);
+    if (S.tracking) S.map.setView([S.lat, S.lon], 16);
+    reverseGeocode(S.lat, S.lon);
+    // update weather with real location
+    loadWeatherCoords(S.lat, S.lon);
+    document.getElementById('loc-btn').classList.add('tracking');
+  }, err => {
+    console.warn('GPS:', err.message);
+    toast('GPS: ' + (err.code === 1 ? 'permissão negada' : 'indisponível'));
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+
+  S.map.on('dragstart', () => {
+    S.tracking = false;
+    document.getElementById('loc-btn').classList.remove('tracking');
+  });
+}
+
+function centerOnUser() {
+  S.tracking = true;
+  S.map.invalidateSize();
+  S.map.setView([S.lat, S.lon], 16);
+  document.getElementById('loc-btn').classList.add('tracking');
+}
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+    const d = await r.json();
+    const road = d.address?.road || d.address?.pedestrian || d.address?.suburb || '';
+    const city = d.address?.city || d.address?.town || d.address?.village || '';
+    document.getElementById('nav-street').textContent = road || city || 'Rua atual';
+    document.getElementById('nav-sub').textContent = city || 'GPS ativo';
+  } catch(e) {}
+}
+
+// ── Weather ──────────────────────────────────────────────────────────────────
+const WXI = {0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌧',55:'🌧',61:'🌧',63:'🌧',65:'⛈',71:'🌨',80:'🌦',95:'⛈'};
+const WXD = {0:'Céu limpo',1:'Quase limpo',2:'Parcialmente nublado',3:'Nublado',45:'Neblina',51:'Chuvisco',61:'Chuva leve',63:'Chuva moderada',80:'Pancadas',95:'Trovoada'};
+
+function loadWeather() { loadWeatherCoords(S.lat, S.lon); }
+
+async function loadWeatherCoords(lat, lon) {
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,windspeed_10m,precipitation,weathercode,uv_index&daily=temperature_2m_max,temperature_2m_min&wind_speed_unit=kmh&timezone=auto`);
+    const d = await r.json();
+    const c = d.current, dl = d.daily;
+    const t = Math.round(c.temperature_2m);
+    const feel = Math.round(c.apparent_temperature);
+    const hum  = Math.round(c.relative_humidity_2m);
+    const wind = Math.round(c.windspeed_10m);
+    const rain = (c.precipitation||0).toFixed(1);
+    const code = c.weathercode;
+    const uv   = c.uv_index != null ? Math.round(c.uv_index) : '--';
+    const tmin = dl ? Math.round(dl.temperature_2m_min[0]) : '--';
+    const tmax = dl ? Math.round(dl.temperature_2m_max[0]) : '--';
+    const icon = WXI[code] || '🌡', desc = WXD[code] || 'Variado';
+
+    $('wx-icon-top').textContent = icon;
+    $('wx-temp-top').textContent = t + '°';
+    $('wx-desc-top').textContent = desc;
+    $('wx-icon').textContent = icon;
+    $('wx-temp').textContent = t + '°';
+    $('wx-desc').textContent = desc;
+    $('wx-feel').textContent = feel + '°';
+    $('wx-hum').textContent  = hum + '%';
+    $('wx-wind').textContent = wind + ' km/h';
+    $('wx-rain').textContent = rain + ' mm';
+    $('wx-mm').textContent   = tmin + ' / ' + tmax + '°';
+    $('wx-uv').textContent   = uv;
+  } catch(e) { console.warn('wx', e); }
+}
+
+// ── Spotify PKCE ─────────────────────────────────────────────────────────────
+function doLogin() {
+  const cid = document.getElementById('cid-input').value.trim();
+  if (!cid) { toast('Cole o Client ID primeiro!'); return; }
+  localStorage.setItem('sp_cid', cid);
+  S.clientId = cid;
+  pkceLogin(cid);
+}
+
+async function pkceLogin(cid) {
+  const ver = rndStr(96);
+  localStorage.setItem('sp_ver', ver);
+  const ch = await sha256b64(ver);
+  const scopes = 'user-read-playback-state user-modify-playback-state user-read-currently-playing user-library-modify user-library-read';
+  location.href = `https://accounts.spotify.com/authorize?client_id=${cid}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${ch}`;
+}
+
+async function exchangeCode(code) {
+  const ver = localStorage.getItem('sp_ver');
+  const cid = localStorage.getItem('sp_cid');
+  if (!ver || !cid) { toast('Configuração perdida, tente novamente'); return; }
+  try {
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({client_id:cid, grant_type:'authorization_code', code, redirect_uri:REDIRECT, code_verifier:ver})
+    });
+    const d = await r.json();
+    if (d.access_token) {
+      saveTokens(d);
+      go();
+    } else {
+      toast('Erro: ' + (d.error_description || d.error));
+    }
+  } catch(e) { toast('Erro de conexão'); }
+}
+
+function saveTokens(d) {
+  S.token   = d.access_token;
+  S.refresh = d.refresh_token || S.refresh;
+  S.expires = Date.now() + d.expires_in * 1000;
+  localStorage.setItem('sp_tok', S.token);
+  if (S.refresh) localStorage.setItem('sp_ref', S.refresh);
+  localStorage.setItem('sp_exp', S.expires);
+}
+
+async function ensureToken() {
+  if (Date.now() < S.expires - 60000) return true;
+  const cid = localStorage.getItem('sp_cid');
+  const ref = localStorage.getItem('sp_ref');
+  if (!ref || !cid) return false;
+  try {
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({client_id:cid, grant_type:'refresh_token', refresh_token:ref})
+    });
+    const d = await r.json();
+    if (d.access_token) { saveTokens(d); return true; }
+  } catch(e) {}
+  return false;
+}
+
+function go() {
+  $('auth').classList.add('hidden');
+  $('music').classList.remove('hidden');
+  toast('✅ Spotify conectado!');
+  poll();
+  S.pollT = setInterval(poll, 3000);
+}
+
+// ── Spotify API ───────────────────────────────────────────────────────────────
+async function sp(path, method='GET', body=null) {
+  if (!await ensureToken()) { logout(); return null; }
+  const opts = { method, headers: {'Authorization':'Bearer '+S.token} };
+  if (body !== null) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
+  try {
+    const r = await fetch('https://api.spotify.com/v1' + path, opts);
+    if (r.status === 401) { if(await ensureToken()) return sp(path,method,body); logout(); return null; }
+    if (r.status === 204 || r.status === 202) return true;
+    if (r.ok) { const t = await r.text(); return t ? JSON.parse(t) : true; }
+  } catch(e) {}
+  return null;
+}
+
+async function poll() {
+  const d = await sp('/me/player');
+  if (!d || !d.item) {
+    $('tname').textContent = 'Nenhuma faixa';
+    $('tartist').textContent = 'Abra o Spotify no celular';
+    return;
+  }
+  const tr = d.item;
+  $('tname').textContent   = tr.name;
+  $('tartist').textContent = tr.artists.map(a=>a.name).join(', ');
+
+  const img = tr.album?.images?.[0]?.url;
+  if (img) {
+    $('album-art').src = img;
+    $('album-art').style.display = 'block';
+    $('art-ph').style.display = 'none';
+  } else {
+    $('album-art').style.display = 'none';
+    $('art-ph').style.display = 'flex';
+  }
+
+  S.duration = tr.duration_ms;
+  S.progress = d.progress_ms;
+  S.playing  = d.is_playing;
+  S.shuffled = d.shuffle_state;
+  renderProg();
+
+  $('play-icon').className = S.playing ? 'ti ti-player-pause' : 'ti ti-player-play';
+  $('shuf-btn').style.color = S.shuffled ? 'var(--accent)' : '';
+
+  if (d.device?.volume_percent != null) {
+    S.volume = d.device.volume_percent;
+    $('vol-fill').style.width = S.volume + '%';
+  }
+
+  clearInterval(S.progT);
+  if (S.playing) {
+    S.progT = setInterval(() => {
+      S.progress = Math.min(S.progress + 500, S.duration);
+      renderProg();
+    }, 500);
+  }
+}
+
+function renderProg() {
+  const pct = S.duration > 0 ? (S.progress / S.duration * 100).toFixed(2) : 0;
+  $('prog-fill').style.width = pct + '%';
+  $('tnow').textContent = ms(S.progress);
+  $('ttot').textContent = ms(S.duration);
+}
+
+async function doPlay()    { await sp('/me/player/' + (S.playing ? 'pause' : 'play'), 'PUT'); setTimeout(poll, 350); }
+async function doNext()    { await sp('/me/player/next', 'POST'); setTimeout(poll, 450); }
+async function doPrev()    { await sp('/me/player/previous', 'POST'); setTimeout(poll, 450); }
+async function doShuffle() { S.shuffled=!S.shuffled; await sp('/me/player/shuffle?state='+S.shuffled,'PUT'); $('shuf-btn').style.color=S.shuffled?'var(--accent)':''; }
+async function doLike()    { S.liked=!S.liked; $('heart-icon').style.color=S.liked?'var(--red)':''; toast(S.liked?'❤️ Curtido!':'💔 Removido'); }
+
+async function seek(e) {
+  const r = $('prog-bar').getBoundingClientRect();
+  const ms2 = Math.floor(Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)) * S.duration);
+  await sp('/me/player/seek?position_ms='+ms2,'PUT');
+  S.progress = ms2; renderProg();
+}
+
+async function setVol(e) {
+  const r = $('vol-bar').getBoundingClientRect();
+  const v = Math.max(0,Math.min(100,Math.round(((e.clientX-r.left)/r.width)*100)));
+  S.volume = v; $('vol-fill').style.width = v+'%';
+  await sp('/me/player/volume?volume_percent='+v,'PUT');
+}
+
+function logout() {
+  clearInterval(S.pollT); clearInterval(S.progT);
+  ['sp_tok','sp_ref','sp_exp'].forEach(k=>localStorage.removeItem(k));
+  S.token = null;
+  $('music').classList.add('hidden');
+  $('auth').classList.remove('hidden');
+  toast('Sessão expirada. Reconecte.');
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function setTab(tab) {
+  S.tab = tab;
+  ['music','weather','settings'].forEach(t => $('db-'+t)?.classList.remove('active'));
+  $('db-'+tab)?.classList.add('active');
+
+  const loggedIn = !!S.token;
+  $('auth').classList.toggle('hidden', loggedIn || tab !== 'music');
+  $('music').classList.toggle('hidden', !loggedIn || tab !== 'music');
+  $('weather').classList.toggle('hidden', tab !== 'weather');
+}
+
+function showSettings() {
+  // Show confirmation modal before disconnecting
+  showConfirm(
+    'Desconectar do Spotify?',
+    'Você precisará conectar novamente para controlar a música.',
+    () => {
+      clearInterval(S.pollT); clearInterval(S.progT);
+      ['sp_tok','sp_ref','sp_exp','sp_cid','sp_ref','sp_ver'].forEach(k=>localStorage.removeItem(k));
+      S.token = null;
+      $('db-settings').classList.remove('active');
+      $('db-music').classList.add('active');
+      S.tab = 'music';
+      $('music').classList.add('hidden');
+      $('weather').classList.add('hidden');
+      $('auth').classList.remove('hidden');
+      if (S.clientId) $('cid-input').value = S.clientId;
+      toast('Desconectado. Reconecte o Spotify.');
+    }
+  );
+}
+
+function showConfirm(title, msg, onConfirm) {
+  const modal = document.getElementById('confirm-modal');
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  modal.classList.remove('hidden');
+  document.getElementById('confirm-ok').onclick = () => {
+    modal.classList.add('hidden');
+    onConfirm();
+  };
+  document.getElementById('confirm-cancel').onclick = () => {
+    modal.classList.add('hidden');
+  };
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function ms(m) { const s=Math.floor(m/1000); return Math.floor(s/60)+':'+(s%60).toString().padStart(2,'0'); }
+function rndStr(len) { const c='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'; return Array.from(crypto.getRandomValues(new Uint8Array(len))).map(b=>c[b%c.length]).join(''); }
+async function sha256b64(s) { const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)); return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
+
+let toastT;
+function toast(m) {
+  const el=$('toast'); el.textContent=m; el.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CarPlay">
+<meta name="theme-color" content="#000000">
+<title>CarPlay</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+
+<style>
+:root {
+  --glass: rgba(255,255,255,0.10);
+  --glass-border: rgba(255,255,255,0.18);
+  --glass-blur: blur(32px) saturate(200%);
+  --accent: #0a84ff;
+  --green: #30d158;
+  --red: #ff453a;
+  --text: #ffffff;
+  --text2: rgba(255,255,255,0.55);
+  --text3: rgba(255,255,255,0.28);
+  --r: 20px;
+  --r-sm: 13px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system,'SF Pro Display','Helvetica Neue',sans-serif; color: #fff; }
+
+/* Animated BG */
+#bg { position: fixed; inset: 0; z-index: 0; background: #06060f; }
+.blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.4; animation: bf 20s ease-in-out infinite; }
+.b1 { width: 600px; height: 600px; background: #0d2855; top: -150px; left: -150px; }
+.b2 { width: 450px; height: 450px; background: #0a2818; bottom: -100px; right: -100px; animation-delay: -7s; }
+.b3 { width: 350px; height: 350px; background: #1e0a3c; top: 40%; left: 35%; animation-delay: -14s; }
+@keyframes bf { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(25px,-18px) scale(1.06)} 70%{transform:translate(-18px,22px) scale(0.94)} }
+
+/* App shell */
+#app { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; padding: env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0); }
+
+/* Topbar */
+#topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px 9px;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border-bottom: 0.5px solid rgba(255,255,255,0.1);
+  flex-shrink: 0; z-index: 10;
+}
+#clock { font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+#wx-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 13px; border-radius: 20px;
+  background: rgba(255,255,255,0.09);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(255,255,255,0.14);
+  cursor: pointer; font-size: 13px; font-weight: 600;
+}
+#wx-pill span { color: var(--text2); font-weight: 400; font-size: 12px; }
+.status-row { display: flex; gap: 7px; font-size: 15px; opacity: 0.65; }
+
 /* Main area — map fills all, panel overlays on right */
 #main { flex: 1; position: relative; min-height: 0; overflow: hidden; }
 
