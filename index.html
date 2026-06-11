@@ -714,4 +714,720 @@ function toast(m) {
 }
 </script>
 </body>
+</html><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CarPlay</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0d0d0d; font-family: -apple-system, 'Helvetica Neue', sans-serif; color: #fff; }
+
+  /* Full-screen map */
+  #map { position: fixed; inset: 0; z-index: 0; }
+
+  /* Mapbox-style dark tile filter */
+  .leaflet-tile-pane {
+    filter: brightness(0.28) saturate(0.6) hue-rotate(170deg);
+  }
+  /* Orange roads effect via sepia+hue trick */
+  .leaflet-tile-pane img {
+    mix-blend-mode: normal;
+  }
+
+  .leaflet-control-zoom,
+  .leaflet-control-attribution { display: none !important; }
+
+  /* Right panel — floats on top of map */
+  #panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 320px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    padding: 20px 14px;
+    pointer-events: none;
+  }
+
+  /* Cards */
+  .card {
+    pointer-events: all;
+    background: rgba(12, 12, 16, 0.90);
+    border: 0.5px solid rgba(255,255,255,0.16);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+  }
+
+  /* ── PLAYER CARD ── */
+  #player-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #album-art-wrap {
+    width: 100%;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    position: relative;
+    border-radius: 20px 20px 0 0;
+  }
+  #album-art {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+  #album-art-ph {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 52px;
+  }
+
+  #song-info {
+    padding: 10px 16px 6px;
+    text-align: center;
+  }
+  #song-label {
+    font-size: 9px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 4px;
+  }
+  #song-name {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #song-artist {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Progress */
+  #prog-wrap {
+    padding: 6px 16px 4px;
+  }
+  #prog-track {
+    height: 3px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+  }
+  #prog-fill {
+    height: 100%;
+    background: rgba(255,255,255,0.75);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.5s linear;
+    position: relative;
+  }
+  #prog-fill::after {
+    content: '';
+    position: absolute; right: -5px; top: -5px;
+    width: 13px; height: 13px;
+    border-radius: 50%; background: #fff;
+  }
+  #prog-times {
+    display: flex; justify-content: space-between;
+    font-size: 9px; color: rgba(255,255,255,0.3);
+    margin-top: 4px;
+  }
+
+  /* Controls */
+  #controls {
+    display: flex; align-items: center; justify-content: center;
+    gap: 24px;
+    padding: 8px 16px 14px;
+  }
+  .ctrl-btn {
+    background: transparent; border: none; cursor: pointer;
+    color: rgba(255,255,255,0.85);
+    display: flex; align-items: center; justify-content: center;
+    padding: 6px; border-radius: 50%;
+    transition: transform 0.1s, color 0.1s;
+  }
+  .ctrl-btn:active { transform: scale(0.85); }
+  .ctrl-btn svg { width: 22px; height: 22px; fill: currentColor; }
+  #play-btn .ctrl-btn { color: #fff; }
+  #play-btn svg { width: 28px; height: 28px; }
+
+  /* ── CLOCK/WEATHER CARD ── */
+  #info-card {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  #clock-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  #clock-icon {
+    width: 36px; height: 36px;
+    border: 2px solid rgba(255,255,255,0.7);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+  /* Clock hands */
+  #clock-icon::before, #clock-icon::after {
+    content: '';
+    position: absolute;
+    background: #fff;
+    border-radius: 2px;
+    transform-origin: bottom center;
+    bottom: 50%;
+    left: 50%;
+  }
+  #clock-icon::before { /* hour hand */
+    width: 2px; height: 9px;
+    margin-left: -1px;
+    transform: rotate(var(--hr, 0deg));
+  }
+  #clock-icon::after { /* minute hand */
+    width: 1.5px; height: 11px;
+    margin-left: -0.75px;
+    transform: rotate(var(--mn, 0deg));
+  }
+  #clock-time {
+    font-size: 38px;
+    font-weight: 300;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  #weather-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-top: 4px;
+    border-top: 0.5px solid rgba(255,255,255,0.08);
+  }
+  #wx-icon-wrap {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  #wx-info {}
+  #wx-temp-main {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  #wx-desc-main {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 1px;
+  }
+  #wx-date {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    margin-top: 1px;
+  }
+
+  /* Auth overlay for Spotify */
+  #auth-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(14,14,18,0.92);
+    backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    z-index: 5;
+    border-radius: 20px;
+  }
+  #auth-overlay h3 { font-size: 15px; font-weight: 700; }
+  #auth-overlay p { font-size: 11px; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.5; }
+  #cid-input {
+    width: 100%; padding: 10px 12px;
+    background: rgba(255,255,255,0.08);
+    border: 0.5px solid rgba(255,255,255,0.2);
+    border-radius: 10px; color: #fff; font-size: 12px; outline: none;
+  }
+  #cid-input::placeholder { color: rgba(255,255,255,0.25); }
+  #sp-btn {
+    width: 100%; padding: 12px;
+    background: #1db954; border: none; border-radius: 24px;
+    color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+
+  /* GPS nav card bottom-left */
+  #nav-card {
+    position: fixed;
+    bottom: 22px; left: 18px;
+    z-index: 20;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+    background: rgba(12,12,16,0.90);
+    border: 0.5px solid rgba(255,255,255,0.16);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  }
+  #nav-arrow {
+    font-size: 20px;
+    color: rgba(100,200,255,0.9);
+  }
+  #nav-street { font-size: 13px; font-weight: 700; }
+  #nav-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  /* Location btn */
+  #loc-btn {
+    position: fixed; top: 18px; right: 338px; z-index: 10;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(14,14,18,0.78);
+    backdrop-filter: blur(16px);
+    border: 0.5px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: rgba(255,255,255,0.6); font-size: 16px;
+    transition: color 0.2s;
+  }
+  #loc-btn.on { color: #4fc; }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 100; padding: 8px 18px; border-radius: 20px;
+    background: rgba(20,20,30,0.9); backdrop-filter: blur(20px);
+    border: 0.5px solid rgba(255,255,255,0.12);
+    font-size: 12px; color: rgba(255,255,255,0.7);
+    opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+
+  /* Confirm modal */
+  #confirm-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; }
+  #confirm-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); }
+  #confirm-box {
+    position: relative; z-index: 1;
+    background: rgba(24,24,32,0.95); backdrop-filter: blur(40px);
+    border: 0.5px solid rgba(255,255,255,0.15);
+    border-radius: 18px; padding: 22px 20px 16px;
+    width: 230px; text-align: center;
+  }
+  #confirm-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  #confirm-msg { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.5; margin-bottom: 16px; }
+  #confirm-btns { display: flex; gap: 8px; }
+  #confirm-cancel, #confirm-ok {
+    flex: 1; padding: 10px; border-radius: 10px; border: none;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  #confirm-cancel { background: rgba(255,255,255,0.1); color: #fff; }
+  #confirm-ok { background: #ff3b30; color: #fff; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Navigation hint bottom-left -->
+<div id="nav-card">
+  <span id="nav-arrow">▲</span>
+  <div>
+    <div id="nav-street">Localizando...</div>
+    <div id="nav-sub">GPS aguardando</div>
+  </div>
+</div>
+
+<!-- Location center button -->
+<button id="loc-btn" onclick="centerUser()" title="Centralizar">⊕</button>
+
+<!-- Right panel -->
+<div id="panel">
+
+  <!-- Player card -->
+  <div class="card" id="player-card" style="position:relative">
+    <div id="auth-overlay">
+      <div style="font-size:36px">🎵</div>
+      <h3>Spotify</h3>
+      <p>Cole seu Client ID do Spotify para controlar a música.</p>
+      <input id="cid-input" type="text" placeholder="Client ID" autocomplete="off" spellcheck="false">
+      <button id="sp-btn" onclick="doLogin()">Conectar</button>
+      <p style="font-size:10px; color:rgba(255,255,255,0.25)">developer.spotify.com/dashboard</p>
+    </div>
+
+    <div id="album-art-wrap">
+      <div id="album-art-ph">🎵</div>
+      <img id="album-art" alt="">
+    </div>
+    <div id="song-info">
+      <div id="song-label">SONG INFORMATION</div>
+      <div id="song-name">Nenhuma faixa</div>
+      <div id="song-artist">Abra o Spotify</div>
+    </div>
+    <div id="prog-wrap">
+      <div id="prog-track" onclick="seek(event)">
+        <div id="prog-fill"></div>
+      </div>
+      <div id="prog-times">
+        <span id="tnow">0:00</span>
+        <span id="ttot">0:00</span>
+      </div>
+    </div>
+    <div id="controls">
+      <button class="ctrl-btn" onclick="doPrev()">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button class="ctrl-btn" id="play-btn" onclick="doPlay()">
+        <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="ctrl-btn" onclick="doNext()">
+        <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm2.5-6l5.5 4V8l-5.5 4zm7.5 6h2V6h-2v12z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Clock + Weather card -->
+  <div class="card" id="info-card">
+    <div id="clock-row">
+      <div id="clock-icon"></div>
+      <div id="clock-time">00:00</div>
+    </div>
+    <div id="weather-row">
+      <div id="wx-icon-wrap">☀️</div>
+      <div id="wx-info">
+        <div id="wx-temp-main">--° C</div>
+        <div id="wx-desc-main">Carregando...</div>
+        <div id="wx-date">--</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<div id="confirm-modal" class="hidden">
+  <div id="confirm-overlay"></div>
+  <div id="confirm-box">
+    <div id="confirm-title">Desconectar?</div>
+    <div id="confirm-msg">Você precisará conectar o Spotify novamente.</div>
+    <div id="confirm-btns">
+      <button id="confirm-cancel">Cancelar</button>
+      <button id="confirm-ok">Desconectar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const S = {
+  map: null, marker: null,
+  tracking: true,
+  lat: -31.77, lon: -52.34,
+  token: null, refresh: null, expires: 0, clientId: null,
+  playing: false, shuffled: false,
+  progress: 0, duration: 0,
+  pollT: null, progT: null,
+};
+
+const REDIRECT = window.location.origin + window.location.pathname;
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  tick();
+  setInterval(tick, 1000);
+  initMap();
+  loadWeather();
+  setInterval(loadWeather, 5 * 60000);
+  startGPS();
+
+  S.clientId = localStorage.getItem('sp_cid') || '';
+  S.token    = localStorage.getItem('sp_tok') || null;
+  S.refresh  = localStorage.getItem('sp_ref') || null;
+  S.expires  = parseInt(localStorage.getItem('sp_exp') || '0');
+
+  if (S.clientId) document.getElementById('cid-input').value = S.clientId;
+
+  const code = new URLSearchParams(location.search).get('code');
+  if (code) { history.replaceState({}, '', location.pathname); exchangeCode(code); return; }
+  if (S.token) goMusic();
+});
+
+// ── Clock ────────────────────────────────────────────────────────────────────
+function tick() {
+  const n = new Date();
+  const h = n.getHours(), m = n.getMinutes(), s = n.getSeconds();
+  document.getElementById('clock-time').textContent =
+    h.toString().padStart(2,'0') + ':' + m.toString().padStart(2,'0');
+
+  // Animate clock hands
+  const hrDeg  = (h % 12) * 30 + m * 0.5;
+  const mnDeg  = m * 6 + s * 0.1;
+  const icon = document.getElementById('clock-icon');
+  icon.style.setProperty('--hr', hrDeg + 'deg');
+  icon.style.setProperty('--mn', mnDeg + 'deg');
+}
+
+// ── Map ──────────────────────────────────────────────────────────────────────
+function initMap() {
+  S.map = L.map('map', { zoomControl: false, attributionControl: false }).setView([S.lat, S.lon], 15);
+
+  // Use a dark-styled tile provider that looks like Mapbox dark
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    subdomains: 'abcd'
+  }).addTo(S.map);
+
+  requestAnimationFrame(() => requestAnimationFrame(() => S.map.invalidateSize()));
+
+  // Triangle navigation marker (like the design)
+  const icon = L.divIcon({
+    className: '',
+    html: `<svg width="24" height="28" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="12,2 22,24 12,19 2,24" fill="rgba(100,220,220,0.9)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+    </svg>`,
+    iconSize: [24, 28],
+    iconAnchor: [12, 14],
+  });
+  S.marker = L.marker([S.lat, S.lon], { icon }).addTo(S.map);
+}
+
+function startGPS() {
+  if (!navigator.geolocation) { toast('GPS não disponível'); return; }
+  navigator.geolocation.watchPosition(pos => {
+    S.lat = pos.coords.latitude; S.lon = pos.coords.longitude;
+    S.marker.setLatLng([S.lat, S.lon]);
+    if (S.tracking) S.map.setView([S.lat, S.lon], 15);
+    reverseGeocode(S.lat, S.lon);
+    loadWeatherCoords(S.lat, S.lon);
+    document.getElementById('loc-btn').classList.add('on');
+  }, err => {
+    toast('GPS: ' + (err.code===1 ? 'permissão negada' : 'indisponível'));
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+
+  S.map.on('dragstart', () => {
+    S.tracking = false;
+    document.getElementById('loc-btn').classList.remove('on');
+  });
+}
+
+function centerUser() {
+  S.tracking = true;
+  S.map.setView([S.lat, S.lon], 15);
+  document.getElementById('loc-btn').classList.add('on');
+  S.map.invalidateSize();
+}
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+    const d = await r.json();
+    const road = d.address?.road || d.address?.suburb || '';
+    const city = d.address?.city || d.address?.town || '';
+    document.getElementById('nav-street').textContent = road || city || 'Rua atual';
+    document.getElementById('nav-sub').textContent    = city || 'GPS ativo';
+  } catch(e) {}
+}
+
+// ── Weather ──────────────────────────────────────────────────────────────────
+const WXI = {0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',51:'🌦',61:'🌧',63:'🌧',80:'🌦',95:'⛈'};
+const WXD = {0:'Ensolarado',1:'Quase limpo',2:'Parcialmente nublado',3:'Nublado',45:'Neblina',51:'Chuvisco',61:'Chuva leve',63:'Chuva moderada',80:'Pancadas',95:'Trovoada'};
+
+const DAYS_PT = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const MONTHS_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+function loadWeather() { loadWeatherCoords(S.lat, S.lon); }
+
+async function loadWeatherCoords(lat, lon) {
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`);
+    const d = await r.json();
+    const c = d.current;
+    const t = Math.round(c.temperature_2m);
+    const code = c.weathercode;
+    const icon = WXI[code] || '🌡';
+    const desc = WXD[code] || 'Variado';
+
+    const now = new Date();
+    const dateStr = DAYS_PT[now.getDay()] + ', ' + now.getDate() + ' de ' + MONTHS_PT[now.getMonth()];
+
+    document.getElementById('wx-icon-wrap').textContent = icon;
+    document.getElementById('wx-temp-main').textContent = t + '° C';
+    document.getElementById('wx-desc-main').textContent = desc;
+    document.getElementById('wx-date').textContent = dateStr;
+  } catch(e) {}
+}
+
+// ── Spotify PKCE ─────────────────────────────────────────────────────────────
+function doLogin() {
+  const cid = document.getElementById('cid-input').value.trim();
+  if (!cid) { toast('Cole o Client ID primeiro!'); return; }
+  localStorage.setItem('sp_cid', cid); S.clientId = cid;
+  pkceLogin(cid);
+}
+
+async function pkceLogin(cid) {
+  const ver = rndStr(96); localStorage.setItem('sp_ver', ver);
+  const ch = await sha256b64(ver);
+  const sc = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
+  location.href = `https://accounts.spotify.com/authorize?client_id=${cid}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT)}&scope=${encodeURIComponent(sc)}&code_challenge_method=S256&code_challenge=${ch}`;
+}
+
+async function exchangeCode(code) {
+  const ver = localStorage.getItem('sp_ver');
+  const cid = localStorage.getItem('sp_cid');
+  if (!ver || !cid) { toast('Config perdida, tente novamente'); return; }
+  try {
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({client_id:cid,grant_type:'authorization_code',code,redirect_uri:REDIRECT,code_verifier:ver})
+    });
+    const d = await r.json();
+    if (d.access_token) { saveTokens(d); goMusic(); }
+    else toast('Erro: ' + (d.error_description || d.error));
+  } catch(e) { toast('Erro de conexão'); }
+}
+
+function saveTokens(d) {
+  S.token = d.access_token;
+  S.refresh = d.refresh_token || S.refresh;
+  S.expires = Date.now() + d.expires_in * 1000;
+  localStorage.setItem('sp_tok', S.token);
+  if (S.refresh) localStorage.setItem('sp_ref', S.refresh);
+  localStorage.setItem('sp_exp', S.expires);
+}
+
+async function ensureToken() {
+  if (Date.now() < S.expires - 60000) return true;
+  const cid = localStorage.getItem('sp_cid'), ref = localStorage.getItem('sp_ref');
+  if (!ref || !cid) return false;
+  try {
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({client_id:cid,grant_type:'refresh_token',refresh_token:ref})
+    });
+    const d = await r.json();
+    if (d.access_token) { saveTokens(d); return true; }
+  } catch(e) {}
+  return false;
+}
+
+function goMusic() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+  toast('✅ Spotify conectado!');
+  poll();
+  S.pollT = setInterval(poll, 3000);
+}
+
+async function sp(path, method='GET', body=null) {
+  if (!await ensureToken()) { doLogout(); return null; }
+  const opts = { method, headers: {'Authorization':'Bearer '+S.token} };
+  if (body !== null) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
+  try {
+    const r = await fetch('https://api.spotify.com/v1' + path, opts);
+    if (r.status===401) { if(await ensureToken()) return sp(path,method,body); doLogout(); return null; }
+    if (r.status===204||r.status===202) return true;
+    if (r.ok) { const t=await r.text(); return t?JSON.parse(t):true; }
+  } catch(e) {}
+  return null;
+}
+
+async function poll() {
+  const d = await sp('/me/player');
+  if (!d || !d.item) {
+    document.getElementById('song-name').textContent = 'Nenhuma faixa';
+    document.getElementById('song-artist').textContent = 'Abra o Spotify no celular';
+    return;
+  }
+  const tr = d.item;
+  document.getElementById('song-name').textContent   = tr.name;
+  document.getElementById('song-artist').textContent = tr.artists.map(a=>a.name).join(', ');
+
+  const img = tr.album?.images?.[0]?.url;
+  if (img) {
+    document.getElementById('album-art').src = img;
+    document.getElementById('album-art').style.display = 'block';
+    document.getElementById('album-art-ph').style.display = 'none';
+  } else {
+    document.getElementById('album-art').style.display = 'none';
+    document.getElementById('album-art-ph').style.display = 'flex';
+  }
+
+  S.duration = tr.duration_ms; S.progress = d.progress_ms;
+  S.playing = d.is_playing;
+  renderProg();
+
+  const pi = document.getElementById('play-icon');
+  if (S.playing) { pi.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'; }
+  else { pi.innerHTML='<path d="M8 5v14l11-7z"/>'; }
+
+  clearInterval(S.progT);
+  if (S.playing) S.progT = setInterval(() => { S.progress=Math.min(S.progress+500,S.duration); renderProg(); }, 500);
+}
+
+function renderProg() {
+  const pct = S.duration>0 ? (S.progress/S.duration*100).toFixed(2) : 0;
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('tnow').textContent = ms(S.progress);
+  document.getElementById('ttot').textContent = ms(S.duration);
+}
+
+async function doPlay()  { await sp('/me/player/'+(S.playing?'pause':'play'),'PUT'); setTimeout(poll,350); }
+async function doNext()  { await sp('/me/player/next','POST'); setTimeout(poll,450); }
+async function doPrev()  { await sp('/me/player/previous','POST'); setTimeout(poll,450); }
+
+async function seek(e) {
+  const r = document.getElementById('prog-track').getBoundingClientRect();
+  const ms2 = Math.floor(Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)) * S.duration);
+  await sp('/me/player/seek?position_ms='+ms2,'PUT');
+  S.progress=ms2; renderProg();
+}
+
+function doLogout() {
+  clearInterval(S.pollT); clearInterval(S.progT);
+  ['sp_tok','sp_ref','sp_exp'].forEach(k=>localStorage.removeItem(k));
+  S.token = null;
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  toast('Sessão expirada. Reconecte.');
+}
+
+// Long-press on album art = disconnect
+let pressTimer;
+document.getElementById('album-art-wrap').addEventListener('pointerdown', () => {
+  pressTimer = setTimeout(() => {
+    const m = document.getElementById('confirm-modal');
+    m.classList.remove('hidden');
+    document.getElementById('confirm-ok').onclick = () => { m.classList.add('hidden'); doLogout(); localStorage.removeItem('sp_cid'); document.getElementById('auth-overlay').classList.remove('hidden'); };
+    document.getElementById('confirm-cancel').onclick = () => m.classList.add('hidden');
+  }, 800);
+});
+document.getElementById('album-art-wrap').addEventListener('pointerup', () => clearTimeout(pressTimer));
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function ms(m) { const s=Math.floor(m/1000); return Math.floor(s/60)+':'+(s%60).toString().padStart(2,'0'); }
+function rndStr(len) { const c='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'; return Array.from(crypto.getRandomValues(new Uint8Array(len))).map(b=>c[b%c.length]).join(''); }
+async function sha256b64(s) { const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)); return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
+
+let toastT;
+function toast(m) {
+  const el=document.getElementById('toast');
+  el.textContent=m; el.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),3000);
+}
+</script>
+</body>
 </html>
